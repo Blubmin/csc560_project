@@ -1,0 +1,5 @@
+This is not final version.
+
+So far I implemented the partition, sorting and merging phases. 
+However, for the merging phase, there are still some mistakes I need to fix.
+The final result is not sorted, although it is expected to be sorted.
