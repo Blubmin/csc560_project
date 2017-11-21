@@ -1,0 +1,6 @@
+simple index join:
+now relR table has key as index(in order), relS has key in disorder;
+
+steps:
+1. read in relR, split into bucket_size(cache size);
+2. read in relS one at a time, based on the key in tuple, find correspondense in relR;
