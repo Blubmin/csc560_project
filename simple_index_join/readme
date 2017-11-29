@@ -1,0 +1,14 @@
+simple index join:
+
+add a new join algo: INDEX_st  in non_partitioning_join.c;
+This INDEX_st is single thread only;
+
+now relR table has key as index(in order), relS has key in disorder;
+
+steps:
+1. read in relR, split into bucket_size(cache size);
+2. read in relS one at a time, based on the key in tuple, find correspondense in relR;
+
+
+Right now, the efficiency is close to the non_partitioning hash join, 
+but in theory, it should be much better, the current step 1 cost too much time;
