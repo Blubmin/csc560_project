@@ -1,6 +1,6 @@
 #include "sortmergejoin_560.h"
 
-int global = 0;
+int match = 0;
 int shrinked = 0;
 
 result_t* sortmergejoin_560(relation_t* relR, relation_t* relS) {
@@ -18,14 +18,13 @@ result_t* sortmergejoin_560(relation_t* relR, relation_t* relS) {
 
     /********** JOIN *******************/
     joint = merging_phase(patR, patS, maximum_tuples);
-    printRelation(joint);
-printf("global is %d\n", global);
+printf("total match is %d\n", match);
     return joinresult;
 }
 
 pat_t* partition_phase(relation_t* rel) {
     int memory_tuples = MEMORY_SIZE / sizeof(tuple_t);
-    int partition_count = rel->num_tuples / memory_tuples;
+    int partition_count = (rel->num_tuples + memory_tuples - 1) / memory_tuples;
     pat_t* result = (pat_t*)malloc(sizeof(pat_t));
     int left = rel->num_tuples;    
     int ndx = 0, i = 0;
@@ -78,256 +77,117 @@ pat_t* sorting_phase(pat_t* pat) {
     return pat;
 }
 
-relation_t* sorting_relation(relation_t* block) {
-    int i = 0, j = 0;
-    tuple_t* temp = (tuple_t*)malloc(sizeof(tuple_t));
-    for (i = 0; i < block->num_tuples - 1; i++) {
-        for (j = 0; j < block->num_tuples - 1 - i; j++) {
-            if (block->tuples[j].payload >= block->tuples[j+1].payload) {
-                memcpy(&temp, &block->tuples[j], sizeof(tuple_t));
-                memcpy(&block->tuples[j], &block->tuples[j+1], sizeof(tuple_t));
-                memcpy(&block->tuples[j+1], &temp, sizeof(tuple_t));
-            }
-        }
-    }
-    return block;
-}
-
 relation_t* merging_phase(pat_t* patR, pat_t* patS, int maximum_tuples) {
-    int memory_tuples = MEMORY_SIZE / sizeof(tuple_t) / 2;
     scheduler* scheR = initScheduler(patR);
     scheduler* scheS = initScheduler(patS);
-    relation_t* blockR = NULL;
-    relation_t* blockS = NULL;
-    int i = 0, j = 0, trackR = 0, trackS = 0;
-int temp = 0;
-
+    scheduler* scheS_temp = initScheduler(patS);
+ 
     relation_t* result = (relation_t*)malloc(sizeof(relation_t));
     result->tuples = (tuple_t*)malloc(maximum_tuples * sizeof(tuple_t));
     result->num_tuples = 0;
 
-    while (countLeft(scheR) != 0 && countLeft(scheS) != 0) {
-        if (blockR == NULL) {
-            blockR = nextBlock(patR, scheR);
-        } 
-        if (blockS == NULL) {
-            blockS = nextBlock(patS, scheS);
-        }
-        if (checkCurrentNumber(blockR) != blockR->num_tuples ||
-            checkCurrentNumber(blockS) != blockS->num_tuples) {
-            refillBlock(patR, scheR, blockR);
-            refillBlock(patS, scheS, blockS);
-        }
-        if ((checkCurrentNumber(blockR) == blockR->num_tuples &&
-             findMin(blockS) == -1) ||
-            (checkCurrentNumber(blockS) == blockS->num_tuples &&
-             findMin(blockR) == -1)) {
-            break;
-        }
-        blockR = sorting_relation(blockR);
-        blockS = sorting_relation(blockS);
-        for (i = 0; i < blockR->num_tuples; i++) {
-            if (blockR->tuples[i].payload == -1) {
-                continue;
-            }
-            tuple_t tempR = blockR->tuples[i];
-            for (j = 0; j < blockS->num_tuples; j++) {
-                if (blockS->tuples[j].payload == -1) {
-                    continue;
-                }
-                tuple_t tempS = blockS->tuples[j];
-                if (tempR.payload == tempS.payload) {
-                    memcpy(&result->tuples[result->num_tuples], &tempR, sizeof(tuple_t));
-                    result->num_tuples += 1;
-printf("result # %d, normal join\n", result->num_tuples);
-temp++;
-                    blockR->tuples[i].payload = -1;
-                    blockS->tuples[j].payload = -1;
-                    break;
-                }
-            }
-        }
-        int minR = findMin(blockR);
-        shrinkBlock(minR, &blockS, &result);
-        int minS = findMin(blockS);
-        shrinkBlock(minS, &blockR, &result);
+    while (!schedulerIsEmpty(scheR)){
+        pair* pairR = nextTuple(patR, scheR);
+        pair* pairS = nextTuple(patS, scheS);
+ 
+        if (pairS->relation_id == -1) {
+            incrementScheduler(scheR, pairR);
+            free(scheS);
+            scheS = copyScheduler(scheS_temp);
+        } else if (pairR->tuple.payload < pairS->tuple.payload) {
+            incrementScheduler(scheR, pairR);
+            free(scheS);
+            scheS = copyScheduler(scheS_temp);
+        } else if (pairR->tuple.payload > pairS->tuple.payload) {
+            incrementScheduler(scheS, pairS);
+            free(scheS_temp);
+            scheS_temp = copyScheduler(scheS);
+        } else {
+            memcpy(&result->tuples[result->num_tuples], &pairR->tuple, sizeof(tuple_t));
+            result->num_tuples += 1;
+            memcpy(&result->tuples[result->num_tuples], &pairS->tuple, sizeof(tuple_t));
+            result->num_tuples += 1;
+printf("%d %d\n", pairR->tuple.payload, pairS->tuple.payload);
+            match += 2;
 
-        if (checkBlockIsEmpty(blockR) == 0) {
-            blockR = NULL;
+            incrementScheduler(scheS, pairS);
         }
-        if (checkBlockIsEmpty(blockS) == 0) {
-            blockS = NULL;
-        }
-    }
-
-    clearScheduler(&result, &scheR, patR);
-    clearScheduler(&result, &scheS, patS);
-
-printf("total normal is %d\n", temp);
-printf("total shrinked is %d\n", shrinked);
-printf("final tuples are %d\n", result->num_tuples);
-if (blockR != NULL) {
-    printf("blockR is not NULL, it still has %d tuples\n", checkCurrentNumber(blockR));
+    } 
+        
+    return NULL;
 }
-if (blockS != NULL) {
-    printf("blockS is not NULL, it still has %d tuples\n", checkCurrentNumber(blockS));
-}
-printf("scheR left %d, scheS left %d\n", countLeft(scheR), countLeft(scheS));
 
-    return result;
-}
+
 
 /****** HELPER FUNCTIONS **************/
 
-void clearScheduler(relation_t** block, scheduler** sche, pat_t* pat) {
-    int left = countLeft(*sche);
+scheduler* copyScheduler(scheduler* sche) {
     int ndx = 0;
-
-    for (ndx = 0; ndx < left; ndx++) {
-        tuple_t temp = nextIndex(pat, *sche);
-        memcpy(&(*block)->tuples[(*block)->num_tuples], &temp, sizeof(tuple_t));
-        (*block)->num_tuples += 1;
-    }
-}
-
-int checkresult(relation_t* block) {
-    int result = 0, ndx = 0;
-    for (ndx = 0; ndx < block->num_tuples; ndx++) {
-        if (block->tuples[ndx].payload == -1) {
-            result++;
-        }
+    scheduler* result = (scheduler*)malloc(sizeof(scheduler));
+    result->currents = (int*)malloc(sche->count * sizeof(int));
+    result->originals = (int*)malloc(sche->count * sizeof(int));
+    result->count = sche->count;
+    for (ndx = 0; ndx < sche->count; ndx++) {
+        result->currents[ndx] = sche->currents[ndx];
+        result->originals[ndx] = sche->originals[ndx];
     }
     return result;
 }
 
-void shrinkBlock(int min, relation_t** block, relation_t** result) {
-    int ndx = 0;
-    for (ndx = 0; ndx < (*block)->num_tuples; ndx++) {
-        tuple_t temp = (*block)->tuples[ndx];
-        if (temp.payload != -1 && temp.payload < min) {
-           memcpy(&((*result)->tuples[(*result)->num_tuples]), &temp, sizeof(tuple_t));
-           (*result)->num_tuples += 1;
-printf("result # %d\n", (*result)->num_tuples);
-shrinked++;
-           (*block)->tuples[ndx].payload = -1;
-        }
-    }
-}
-
-int findMin(relation_t* block) {
-    int result = 1000000;
-    int temp = 0, ndx = 0;
-    for (ndx = 0; ndx < block->num_tuples; ndx++) {
-        temp = block->tuples[ndx].payload;
-        if (temp != -1 && temp < result) {
-            result = temp;
-        }
-    }
-    if (result == 1000000) {
-        result = -1;
-    }
-printf("min is %d\n", result);
-    return result;
-}
-
-/* 0 means empty */
-int checkBlockIsEmpty(relation_t* block) {
-    int ndx = 0;
-    for (ndx = 0; ndx < block->num_tuples; ndx++) {
-        if (block->tuples[ndx].payload != -1) {
-            return 1;
-        }
-    }
-printf("ISEMPTY!\n");
-    return 0;
-}
-
-int checkCurrentNumber(relation_t* block) {
-    int result = 0, ndx = 0;
-    for (ndx = 0; ndx < block->num_tuples; ndx++) {
-        if (block->tuples[ndx].payload != -1) {
-            result++;
-        }
-    }
-    return result;
-}
-
-relation_t* refillBlock(pat_t* pat, scheduler* sche, relation_t* block) {
-    int left = countLeft(sche);
-    int ndx = 0, number = checkCurrentNumber(block);
-    for (ndx = 0; ndx < block->num_tuples; ndx++) {
-        if (left == 0) {
-            block->num_tuples = number;
-            return block;
-        }
-        if (block->tuples[ndx].payload == -1) {
-            number++;
-            tuple_t temp = nextIndex(pat, sche);
-            memcpy(&block->tuples[ndx], &temp, sizeof(tuple_t));
-            left--;
-        } 
-    }
-    block->num_tuples = number;
-    return block;
-}
-
-relation_t* nextBlock(pat_t* pat, scheduler* sche) {
-    int left = countLeft(sche);
-    int memory_tuples = MEMORY_SIZE / sizeof(tuple_t) / 2;
-    int ndx = 0;
-
-    relation_t* result = (relation_t*)malloc(sizeof(relation_t));
-    if (left >= memory_tuples) {
-        result->tuples = (tuple_t*)malloc(memory_tuples * sizeof(tuple_t));
-        result->num_tuples = memory_tuples;
-    } else if (left > 0) {
-        result->tuples = (tuple_t*)malloc(left * sizeof(tuple_t));
-        result->num_tuples = left;
-    } else {
-printf("HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH\n");
-        return NULL;
-    }
-
-    for (ndx = 0; ndx < result->num_tuples; ndx++) {
-        tuple_t temp = nextIndex(pat, sche);
-        memcpy(&result->tuples[ndx], &temp, sizeof(tuple_t));
-    }
-
-    return result;
-}
-
-tuple_t nextIndex(pat_t* pat, scheduler* sche) {
-
-global++;
-    int current_index = sche->currents[sche->cursor];
-    tuple_t result = pat->relations[sche->cursor].tuples[current_index];
-    
-    sche->cursor = incrementCursor(sche->cursor, sche->count);
-    sche->currents[sche->cursor]+=1;
-
-    return result;
-}
-
-int incrementCursor(int current, int total) {
-    if (current + 1 == total) {
-        return 0;
-    }
-    return current+1;
-}
-
-int countLeft(scheduler* sche) {
-    int result = 0;
+// 1 means empty
+int schedulerIsEmpty(scheduler* sche) {
     int ndx = 0;
     for (ndx = 0; ndx < sche->count; ndx++) {
-        result += sche->originals[ndx] - sche->currents[ndx];
+        if (sche->currents[ndx] < sche->originals[ndx]) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
+scheduler* incrementScheduler(scheduler* sche, pair* p) {
+    sche->currents[p->relation_id]++;
+    return sche;
+}
+
+pair* nextTuple(pat_t* pat, scheduler* sche) {
+    int ndx = 0, count = 0;
+    pair* result = (pair*)malloc(sizeof(pair));
+    result->tuple = pat->relations[0].tuples[sche->currents[0]];
+    result->relation_id = 0;
+    for (ndx = 0; ndx < sche->count; ndx++) {
+        if (sche->currents[ndx] >= sche->originals[ndx]) {
+            count++;
+            continue;
+        } else if ( result->tuple.payload > pat->relations[ndx].tuples[sche->currents[ndx]].payload) {
+            result->tuple = pat->relations[ndx].tuples[sche->currents[ndx]];
+            result->relation_id = ndx;
+        }
+    }
+    if (count == sche->count) {
+        //printf("count is %d, original is %d\n", count, sche->count);
+        result->relation_id = -1;
     }
     return result;
+}
+
+scheduler* initScheduler(pat_t* pat) {
+    int ndx = 0;
+    scheduler* sche = (scheduler*)malloc(sizeof(scheduler));
+    sche->currents = (int*)malloc(pat->num_relations * sizeof(int));
+    sche->originals = (int*)malloc(pat->num_relations * sizeof(int));
+    sche->count = pat->num_relations;
+    for (ndx = 0; ndx < pat->num_relations; ndx++) {
+        sche->currents[ndx] = 0;
+        sche->originals[ndx] = pat->relations[ndx].num_tuples;
+    }
+    return sche;
 }
 
 void printRelation(relation_t* rel) {
     int ndx = 0;
     for (ndx = 0; ndx < rel->num_tuples; ndx++) {
-        printf("tuple %d, value %d\n", ndx, rel->tuples[ndx]);
+        printf("tuple %d, value %d\n", ndx, rel->tuples[ndx].payload);
     }
 }
 
@@ -346,21 +206,9 @@ void printScheduler(scheduler* sche) {
     }
 }
 
-scheduler* initScheduler(pat_t* pat) {
-    int ndx = 0;
-    scheduler* result = (scheduler*)malloc(sizeof(scheduler));
-    result->currents = (int*)malloc(pat->num_relations * sizeof(int));
-    result->originals = (int*)malloc(pat->num_relations * sizeof(int));
-    result->cursor = 0;
-    result->count = pat->num_relations;
-    for (ndx = 0; ndx < pat->num_relations; ndx++) {
-        result->currents[ndx] = 0;
-        result->originals[ndx] = pat->relations[ndx].num_tuples;
-    }
-    return result;
+void printPair(pair* pair) {
+    printf("tuple value is %d, relation_id is %d\n", pair->tuple.payload, pair->relation_id);
 }
-
-
 
 
 

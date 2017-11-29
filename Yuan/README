@@ -1,5 +1,4 @@
-This is not final version.
+The final result is sorted now, I believe the bugs have been fixed.
+you can download it and try to run it by youself, if you find any mistakes within the code, please let me know.
 
-So far I implemented the partition, sorting and merging phases. 
-However, for the merging phase, there are still some mistakes I need to fix.
-The final result is not sorted, although it is expected to be sorted.
+If you want to change the size of both relations or want to change each tuple's value, you need to do it in main.c.

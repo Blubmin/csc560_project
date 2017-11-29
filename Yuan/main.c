@@ -1,13 +1,13 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
-#include "../types.h"
+#include "types.h"
 #include "sortmergejoin_560.h"
 
 relation_t* createRelation(int tuple_count);
 
 void main() {
-    relation_t* relR = createRelation(800);
+    relation_t* relR = createRelation(1000);
     relation_t* relS = createRelation(1000);
 
     
@@ -22,7 +22,7 @@ relation_t* createRelation(int tuple_count) {
     int ndx = 0;
  
     for (ndx = 0; ndx < tuple_count; ndx++) {
-        result->tuples[ndx].payload = (value_t)rand()%100;
+        result->tuples[ndx].payload = (value_t)rand()%10000;
         result->tuples[ndx].key = 1;
     }
 
