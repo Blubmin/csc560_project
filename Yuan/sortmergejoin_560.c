@@ -1,7 +1,6 @@
 #include "sortmergejoin_560.h"
 
 int match = 0;
-int shrinked = 0;
 
 result_t* sortmergejoin_560(relation_t* relR, relation_t* relS) {
     result_t* joinresult = (result_t*)malloc(sizeof(result_t));
@@ -148,6 +147,7 @@ scheduler* incrementScheduler(scheduler* sche, pair* p) {
     return sche;
 }
 
+// If there is no next_tuple, the returned pair's relation_id will be -1.
 pair* nextTuple(pat_t* pat, scheduler* sche) {
     int ndx = 0, count = 0;
     pair* result = (pair*)malloc(sizeof(pair));
@@ -163,7 +163,6 @@ pair* nextTuple(pat_t* pat, scheduler* sche) {
         }
     }
     if (count == sche->count) {
-        //printf("count is %d, original is %d\n", count, sche->count);
         result->relation_id = -1;
     }
     return result;
