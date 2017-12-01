@@ -37,7 +37,7 @@ pat_t* partition_phase(relation_t* rel) {
         if (left > memory_tuples) {
             for (i = 0; i < memory_tuples; i++) {
                 memcpy(&result->relations[ndx].tuples[i], 
-                       &rel->tuples[ndx*partition_count + i], 
+                       &rel->tuples[ndx*memory_tuples + i], 
                        sizeof(tuple_t));
             } 
             result->relations[ndx].num_tuples = memory_tuples;
@@ -45,7 +45,7 @@ pat_t* partition_phase(relation_t* rel) {
         } else {
             for (i = 0; i < left; i++) {
                 memcpy(&result->relations[ndx].tuples[i], 
-                       &rel->tuples[ndx*partition_count + i], 
+                       &rel->tuples[ndx*memory_tuples + i], 
                        sizeof(tuple_t));
             }
             result->relations[ndx].num_tuples = left; 
@@ -105,8 +105,6 @@ relation_t* merging_phase(pat_t* patR, pat_t* patS, int maximum_tuples) {
         } else {
             memcpy(&result->tuples[result->num_tuples], &pairR->tuple, sizeof(tuple_t));
             result->num_tuples += 1;
-            // memcpy(&result->tuples[result->num_tuples], &pairS->tuple, sizeof(tuple_t));
-            // result->num_tuples += 1;
 printf("%d %d: %d\n", pairR->tuple.key, pairS->tuple.key, pairR->tuple.payload);
             match += 1;
 
@@ -114,7 +112,7 @@ printf("%d %d: %d\n", pairR->tuple.key, pairS->tuple.key, pairR->tuple.payload);
         }
     } 
         
-    return NULL;
+    return result;
 }
 
 
@@ -187,7 +185,7 @@ scheduler* initScheduler(pat_t* pat) {
 void printRelation(relation_t* rel) {
     int ndx = 0;
     for (ndx = 0; ndx < rel->num_tuples; ndx++) {
-        printf("tuple %d, value %d\n", ndx, rel->tuples[ndx].payload);
+        printf("tuple %d, value %d\n", rel->tuples[ndx].key, rel->tuples[ndx].payload);
     }
 }
 

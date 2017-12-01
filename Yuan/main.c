@@ -9,8 +9,8 @@ relation_t* createRelation(int tuple_count);
 
 void main() {
     srand(time(0));
-    relation_t* relR = createRelation(1000);
-    relation_t* relS = createRelation(1000);
+    relation_t* relR = createRelation(100);
+    relation_t* relS = createRelation(100);
 
     
     result_t* result = (result_t*)malloc(sizeof(result_t));
