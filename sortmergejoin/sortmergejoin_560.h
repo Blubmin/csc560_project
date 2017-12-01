@@ -36,6 +36,7 @@ scheduler* initScheduler(pat_t* pat);
 pair* nextTuple(pat_t* pat, scheduler* sche);
 scheduler* incrementScheduler(scheduler* sche, pair* p);
 scheduler* copyScheduler(scheduler* sche);
+int schedulerIsEmpty(scheduler* sche);
 
 void printRelation(relation_t* rel);
 void printPat(pat_t* pat);
