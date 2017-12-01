@@ -5,7 +5,7 @@
 
 #include "types.h"
 
-#define MEMORY_SIZE 512
+#define MEMORY_SIZE 100
 
 typedef struct pat_t pat_t;
 typedef struct scheduler scheduler;
@@ -32,6 +32,7 @@ pat_t* partition_phase(relation_t* rel);
 pat_t* sorting_phase(pat_t* rel);
 relation_t* merging_phase(pat_t* r, pat_t* s, int maximum_tuples);
 
+static inline int compare_tuples(const void* a, const void* b);
 scheduler* initScheduler(pat_t* pat);
 pair* nextTuple(pat_t* pat, scheduler* sche);
 scheduler* incrementScheduler(scheduler* sche, pair* p);

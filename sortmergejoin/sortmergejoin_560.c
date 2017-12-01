@@ -1,6 +1,6 @@
 #include "sortmergejoin_560.h"
 
-int match = 0;
+double match = 0;
 
 result_t* sortmergejoin_560(relation_t* relR, relation_t* relS) {
     result_t* joinresult = (result_t*)malloc(sizeof(result_t));
@@ -10,14 +10,17 @@ result_t* sortmergejoin_560(relation_t* relR, relation_t* relS) {
     /********** PARTITION **************/
     pat_t* patR = partition_phase(relR);
     pat_t* patS = partition_phase(relS);
+    printf("finish partition\n");
 
     /********** SORT *******************/
     patR = sorting_phase(patR);
     patS = sorting_phase(patS);
+    printf("finish sorting\n");
 
     /********** JOIN *******************/
     joint = merging_phase(patR, patS, maximum_tuples);
-printf("total match is %d\n", match);
+    printf("total match is %f\n", match);
+
     return joinresult;
 }
 
@@ -54,23 +57,15 @@ pat_t* partition_phase(relation_t* rel) {
     return result;
 }
 
-/* Bubble Sort  */
+/* Quick Sort  */
 pat_t* sorting_phase(pat_t* pat) {
     int ndx = 0;
     int i = 0, j = 0;
-    tuple_t* temp = (tuple_t*)malloc(sizeof(tuple_t));
-
+    
     for (ndx = 0; ndx < pat->num_relations; ndx++) {
         relation_t* rel = &pat->relations[ndx];
-        for (i = 0; i < rel->num_tuples - 1; i++) {
-            for (j = 0; j < rel->num_tuples - 1 - i; j++) {
-                if (rel->tuples[j].payload >= rel->tuples[j+1].payload) {
-                    memcpy(&temp, &rel->tuples[j], sizeof(tuple_t));
-                    memcpy(&rel->tuples[j], &rel->tuples[j+1], sizeof(tuple_t));
-                    memcpy(&rel->tuples[j+1], &temp, sizeof(tuple_t));
-                }
-            }
-        }
+        tuple_t* in = rel->tuples;
+        qsort(in, rel->num_tuples, sizeof(tuple_t), compare_tuples);
     }
 
     return pat;
@@ -79,38 +74,39 @@ pat_t* sorting_phase(pat_t* pat) {
 relation_t* merging_phase(pat_t* patR, pat_t* patS, int maximum_tuples) {
     scheduler* scheR = initScheduler(patR);
     scheduler* scheS = initScheduler(patS);
-    scheduler* scheS_temp = initScheduler(patS);
- 
+    scheduler* scheS_temp;
+
     relation_t* result = (relation_t*)malloc(sizeof(relation_t));
     result->tuples = (tuple_t*)malloc(maximum_tuples * sizeof(tuple_t));
     result->num_tuples = 0;
 
-    while (!schedulerIsEmpty(scheR)){
+    while (!schedulerIsEmpty(scheR) && !schedulerIsEmpty(scheS)) {
         pair* pairR = nextTuple(patR, scheR);
         pair* pairS = nextTuple(patS, scheS);
- 
-        if (pairS->relation_id == -1) {
-            incrementScheduler(scheR, pairR);
-            free(scheS);
-            scheS = copyScheduler(scheS_temp);
-        } else if (pairR->tuple.payload < pairS->tuple.payload) {
-            incrementScheduler(scheR, pairR);
-            free(scheS);
-            scheS = copyScheduler(scheS_temp);
-        } else if (pairR->tuple.payload > pairS->tuple.payload) {
-            incrementScheduler(scheS, pairS);
-            free(scheS_temp);
-            scheS_temp = copyScheduler(scheS);
-        } else {
-            memcpy(&result->tuples[result->num_tuples], &pairR->tuple, sizeof(tuple_t));
-            result->num_tuples += 1;
-printf("%d %d: %d\n", pairR->tuple.key, pairS->tuple.key, pairR->tuple.payload);
-            match += 1;
+        pair* pairS_temp;
 
-            incrementScheduler(scheS, pairS);
+        if (pairR->tuple.payload < pairS->tuple.payload) {
+            scheR = incrementScheduler(scheR, pairR);      
+        } else if (pairR->tuple.payload > pairS->tuple.payload) {
+            scheS = incrementScheduler(scheS, pairS);
+        } else {
+            while (pairR->relation_id != -1 && pairR->tuple.payload == pairS->tuple.payload) {
+                scheS_temp = copyScheduler(scheS);
+                pairS_temp = nextTuple(patS, scheS_temp);
+                while (pairS_temp->relation_id != -1 && pairR->tuple.payload == pairS_temp->tuple.payload) {
+                    //printf("%d %d: %d\n", pairR->tuple.key, pairS_temp->tuple.key, pairR->tuple.payload);
+                    match++;
+                    scheS_temp = incrementScheduler(scheS_temp, pairS_temp);
+                    pairS_temp = nextTuple(patS, scheS_temp);
+                } 
+                scheR = incrementScheduler(scheR, pairR);
+                pairR = nextTuple(patR, scheR);
+            } 
+            scheS = copyScheduler(scheS_temp);
+            pairS = nextTuple(patS, scheS);
         }
-    } 
-        
+    }
+      
     return result;
 }
 
@@ -118,12 +114,17 @@ printf("%d %d: %d\n", pairR->tuple.key, pairS->tuple.key, pairR->tuple.payload);
 
 /****** HELPER FUNCTIONS **************/
 
+static inline int compare_tuples(const void* a, const void* b) {
+    return (((tuple_t*)a)->payload > ((tuple_t*)b)->payload);
+}
+
 scheduler* copyScheduler(scheduler* sche) {
     int ndx = 0;
     scheduler* result = (scheduler*)malloc(sizeof(scheduler));
     result->currents = (int*)malloc(sche->count * sizeof(int));
     result->originals = (int*)malloc(sche->count * sizeof(int));
     result->count = sche->count;
+
     for (ndx = 0; ndx < sche->count; ndx++) {
         result->currents[ndx] = sche->currents[ndx];
         result->originals[ndx] = sche->originals[ndx];
@@ -157,7 +158,7 @@ pair* nextTuple(pat_t* pat, scheduler* sche) {
         if (sche->currents[ndx] >= sche->originals[ndx]) {
             count++;
             continue;
-        } else if ( result->tuple.payload > pat->relations[ndx].tuples[sche->currents[ndx]].payload) {
+        } else if (result->tuple.payload > pat->relations[ndx].tuples[sche->currents[ndx]].payload) {
             result->tuple = pat->relations[ndx].tuples[sche->currents[ndx]];
             result->relation_id = ndx;
         }
