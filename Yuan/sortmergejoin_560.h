@@ -5,7 +5,7 @@
 
 #include "types.h"
 
-#define MEMORY_SIZE 500
+#define MEMORY_SIZE 512
 
 typedef struct pat_t pat_t;
 typedef struct scheduler scheduler;

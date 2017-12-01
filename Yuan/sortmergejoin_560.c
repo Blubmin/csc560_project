@@ -105,10 +105,10 @@ relation_t* merging_phase(pat_t* patR, pat_t* patS, int maximum_tuples) {
         } else {
             memcpy(&result->tuples[result->num_tuples], &pairR->tuple, sizeof(tuple_t));
             result->num_tuples += 1;
-            memcpy(&result->tuples[result->num_tuples], &pairS->tuple, sizeof(tuple_t));
-            result->num_tuples += 1;
-printf("%d %d\n", pairR->tuple.payload, pairS->tuple.payload);
-            match += 2;
+            // memcpy(&result->tuples[result->num_tuples], &pairS->tuple, sizeof(tuple_t));
+            // result->num_tuples += 1;
+printf("%d %d: %d\n", pairR->tuple.key, pairS->tuple.key, pairR->tuple.payload);
+            match += 1;
 
             incrementScheduler(scheS, pairS);
         }
