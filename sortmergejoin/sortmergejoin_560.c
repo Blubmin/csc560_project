@@ -6,19 +6,28 @@ result_t* sortmergejoin_560(relation_t* relR, relation_t* relS) {
     result_t* joinresult = (result_t*)malloc(sizeof(result_t));
     relation_t* joint;
     int maximum_tuples = relR->num_tuples + relS->num_tuples;
+    struct timeval start, end;
 
     /********** PARTITION **************/
+    gettimeofday(&start, NULL);
     pat_t* patR = partition_phase(relR);
     pat_t* patS = partition_phase(relS);
-    printf("finish partition\n");
+    gettimeofday(&end, NULL);
+    printf("finished partition in %ld\n", start.tv_usec - end.tv_usec);
 
     /********** SORT *******************/
+    gettimeofday(&start, NULL);
     patR = sorting_phase(patR);
     patS = sorting_phase(patS);
-    printf("finish sorting\n");
+    gettimeofday(&end, NULL);
+    printf("finished sorting in %ld\n", start.tv_usec - end.tv_usec);
 
     /********** JOIN *******************/
+    gettimeofday(&start, NULL);
     joint = merging_phase(patR, patS, maximum_tuples);
+    gettimeofday(&end, NULL);
+    printf("finished merging in %ld\n", start.tv_usec - end.tv_usec);
+
     printf("total match is %f\n", match);
 
     return joinresult;
@@ -94,7 +103,7 @@ relation_t* merging_phase(pat_t* patR, pat_t* patS, int maximum_tuples) {
                 scheS_temp = copyScheduler(scheS);
                 pairS_temp = nextTuple(patS, scheS_temp);
                 while (pairS_temp->relation_id != -1 && pairR->tuple.payload == pairS_temp->tuple.payload) {
-                    //printf("%d %d: %d\n", pairR->tuple.key, pairS_temp->tuple.key, pairR->tuple.payload);
+                   // printf("%d %d: %d\n", pairR->tuple.key, pairS_temp->tuple.key, pairR->tuple.payload);
                     match++;
                     scheS_temp = incrementScheduler(scheS_temp, pairS_temp);
                     pairS_temp = nextTuple(patS, scheS_temp);
@@ -148,24 +157,34 @@ scheduler* incrementScheduler(scheduler* sche, pair* p) {
     return sche;
 }
 
+int firstValidRelation(scheduler* sche) {
+    int ndx = 0;
+    for (ndx = 0; ndx < sche->count; ndx++) {
+        if (sche->currents[ndx] < sche->originals[ndx]) {
+            return ndx; 
+        }
+    }
+    return -1;
+}
+
 // If there is no next_tuple, the returned pair's relation_id will be -1.
 pair* nextTuple(pat_t* pat, scheduler* sche) {
-    int ndx = 0, count = 0;
+    int ndx = 0;
+    int first = firstValidRelation(sche);
     pair* result = (pair*)malloc(sizeof(pair));
-    result->tuple = pat->relations[0].tuples[sche->currents[0]];
-    result->relation_id = 0;
-    for (ndx = 0; ndx < sche->count; ndx++) {
-        if (sche->currents[ndx] >= sche->originals[ndx]) {
-            count++;
-            continue;
-        } else if (result->tuple.payload > pat->relations[ndx].tuples[sche->currents[ndx]].payload) {
+    if (first == -1) {
+        result->relation_id = -1;
+        return result; 
+    }
+    result->tuple = pat->relations[first].tuples[sche->currents[first]];
+    result->relation_id = first;
+    for (ndx = first; ndx < sche->count; ndx++) { 
+        if (result->tuple.payload > pat->relations[ndx].tuples[sche->currents[ndx]].payload) {
             result->tuple = pat->relations[ndx].tuples[sche->currents[ndx]];
             result->relation_id = ndx;
         }
     }
-    if (count == sche->count) {
-        result->relation_id = -1;
-    }
+
     return result;
 }
 

@@ -24,7 +24,7 @@ relation_t* createRelation(int tuple_count) {
     int ndx = 0;
  
     for (ndx = 0; ndx < tuple_count; ndx++) {
-        result->tuples[ndx].payload = 1; //(value_t)rand()%100000;
+        result->tuples[ndx].payload = 1;//(value_t)rand();
         result->tuples[ndx].key = ndx;
     }
 

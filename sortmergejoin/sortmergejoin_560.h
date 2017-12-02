@@ -2,10 +2,11 @@
 #include <string.h>
 #include <stdio.h>
 #include <math.h>
+#include <sys/time.h>
 
 #include "types.h"
 
-#define MEMORY_SIZE 100
+#define MEMORY_SIZE 20
 
 typedef struct pat_t pat_t;
 typedef struct scheduler scheduler;
