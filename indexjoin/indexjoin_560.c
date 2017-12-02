@@ -16,11 +16,11 @@ print_timing(uint64_t total, uint64_t build, uint64_t part,
     double cyclestuple = total;
     cyclestuple /= numtuples;
     fprintf(stdout, "RUNTIME TOTAL, BUILD, PART (cycles): \n");
-    fprintf(stderr, "%llu \t %llu \t %llu ", 
+    fprintf(stderr, "%lu \t %lu \t %lu ", 
             total, build, part);
     fprintf(stdout, "\n");
     fprintf(stdout, "TOTAL-TIME-USECS, TOTAL-TUPLES, CYCLES-PER-TUPLE: \n");
-    fprintf(stdout, "%.4lf \t %llu \t ", diff_usec, result);
+    fprintf(stdout, "%.4lf \t %lu \t ", diff_usec, result);
     fflush(stdout);
     fprintf(stderr, "%.4lf ", cyclestuple);
     fflush(stderr);
@@ -49,7 +49,7 @@ result_t* indexjoin_560(relation_t* relR, relation_t* relS) {
     printf("number of bucket it needed is %d\n", num_ht_buckets);
     ht.buckets = (struct bucket_t*) calloc(num_ht_buckets, sizeof(struct bucket_t));
     int64_t tuple_limit = MEMORY_SIZE/sizeof(tuple_t);
-    printf("max_tuple number in MM is %lld\n", tuple_limit);
+    printf("max_tuple number in MM is %ld\n", tuple_limit);
     /*
     for(int i=0; i < relR->num_tuples; i++){       
         int32_t idx = (relR->tuples[i].key)*sizeof(tuple_t)/MEMORY_SIZE;
@@ -93,7 +93,7 @@ result_t* indexjoin_560(relation_t* relR, relation_t* relS) {
     /* now print the timing results: */
     print_timing(timer1, timer2, timer3, relS->num_tuples, matches, &start, &end);
 
-    printf("final match: %lld\n", matches);
+    printf("final match: %ld\n", matches);
     return joinresult;
 }
 

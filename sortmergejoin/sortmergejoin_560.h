@@ -5,8 +5,9 @@
 #include <sys/time.h>
 
 #include "types.h"
+#include "rdtsc.h"
 
-#define MEMORY_SIZE 20
+#define MEMORY_SIZE 1000000
 
 typedef struct pat_t pat_t;
 typedef struct scheduler scheduler;
@@ -44,3 +45,8 @@ void printRelation(relation_t* rel);
 void printPat(pat_t* pat);
 void printScheduler(scheduler* sche);
 void printPair(pair* pair);
+void
+print_timing(uint64_t total, uint64_t partition, uint64_t sorting, uint64_t merging,
+            uint64_t numtuples, int64_t result,
+            struct timeval * start, struct timeval * end);
+

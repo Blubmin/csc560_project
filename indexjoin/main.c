@@ -9,8 +9,8 @@ relation_t* createRelation(int tuple_count);
 relation_t* createIndexRelation(int tuple_count);
 void main() {
     srand(time(0));
-    relation_t* relR = createIndexRelation(11000011);
-    relation_t* relS = createRelation(21000000);
+    relation_t* relR = createIndexRelation(128000000);
+    relation_t* relS = createRelation(128000000);
     printf("tables are ready.\n");
 
 
@@ -25,8 +25,8 @@ relation_t* createRelation(int tuple_count) {
     int ndx = 0;
  
     for (ndx = 0; ndx < tuple_count; ndx++) {
-        result->tuples[ndx].payload = (value_t)rand()%1000000;
-        result->tuples[ndx].key = (value_t)rand()%tuple_count;
+        result->tuples[ndx].payload = (value_t)rand();
+        result->tuples[ndx].key = (value_t)rand();
     }
 
     return result;
@@ -39,7 +39,7 @@ relation_t* createIndexRelation(int tuple_count) {
     int ndx = 0;
  
     for (ndx = 0; ndx < tuple_count; ndx++) {
-        result->tuples[ndx].payload = (value_t)rand()%1000000;
+        result->tuples[ndx].payload = (value_t)rand();
         result->tuples[ndx].key = ndx;
     }
 

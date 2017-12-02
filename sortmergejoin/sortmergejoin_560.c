@@ -6,29 +6,39 @@ result_t* sortmergejoin_560(relation_t* relR, relation_t* relS) {
     result_t* joinresult = (result_t*)malloc(sizeof(result_t));
     relation_t* joint;
     int maximum_tuples = relR->num_tuples + relS->num_tuples;
+    
     struct timeval start, end;
+    uint64_t timer1, timer2, timer3, timer4;
 
     /********** PARTITION **************/
     gettimeofday(&start, NULL);
+    startTimer(&timer1);
+    startTimer(&timer2);
+
     pat_t* patR = partition_phase(relR);
     pat_t* patS = partition_phase(relS);
-    gettimeofday(&end, NULL);
-    printf("finished partition in %ld\n", start.tv_usec - end.tv_usec);
+
+    stopTimer(&timer2);
 
     /********** SORT *******************/
-    gettimeofday(&start, NULL);
+    startTimer(&timer3);
+
     patR = sorting_phase(patR);
     patS = sorting_phase(patS);
-    gettimeofday(&end, NULL);
-    printf("finished sorting in %ld\n", start.tv_usec - end.tv_usec);
+    
+    stopTimer(&timer3);
 
     /********** JOIN *******************/
-    gettimeofday(&start, NULL);
-    joint = merging_phase(patR, patS, maximum_tuples);
-    gettimeofday(&end, NULL);
-    printf("finished merging in %ld\n", start.tv_usec - end.tv_usec);
+    startTimer(&timer4);
 
-    printf("total match is %f\n", match);
+    joint = merging_phase(patR, patS, maximum_tuples);
+
+    stopTimer(&timer4);
+    stopTimer(&timer1);
+    gettimeofday(&end, NULL);
+
+    print_timing(timer1, timer2, timer3, timer4, relR->num_tuples+relS->num_tuples,
+                 match, &start, &end);
 
     return joinresult;
 }
@@ -227,7 +237,26 @@ void printPair(pair* pair) {
     printf("tuple value is %d, relation_id is %d\n", pair->tuple.payload, pair->relation_id);
 }
 
+void 
+print_timing(uint64_t total, uint64_t partition, uint64_t sorting, uint64_t merging,
+             uint64_t numtuples, int64_t result,
+             struct timeval * start, struct timeval * end) {
+    double diff_usec = (((*end).tv_sec*1000000L + (*end).tv_usec)
+                        - ((*start).tv_sec*1000000L+(*start).tv_usec));
+    double cyclestuple = total;
+    cyclestuple /= numtuples;
+    fprintf(stdout, "RUNTIME TOTAL,   PARTITION,       SORTING,        MERGING: \n");
+    fprintf(stderr, "%lu \t %lu \t %lu \t %lu ", 
+            total, partition, sorting, merging);
+    fprintf(stdout, "\n");
+    fprintf(stdout, "TOTAL-TIME-USECS, TOTAL-TUPLES, CYCLES-PER-TUPLE: \n");
+    fprintf(stdout, "%.4lf \t    %lu \t ", diff_usec, result);
+    fflush(stdout);
+    fprintf(stderr, "%.4lf ", cyclestuple);
+    fflush(stderr);
+    fprintf(stdout, "\n");
 
+}
 
 
 
